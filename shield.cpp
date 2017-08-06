@@ -48,7 +48,7 @@ bool change(string devlist, string prev_devlist) {
 
 int main(int argc, char **argv) {
 
-    int newdev_delay = 10;
+    int newdev_delay = 1;
 
     while(true) {
 
