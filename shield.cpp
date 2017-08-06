@@ -69,7 +69,6 @@ vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
 
     vector<int> output;
 
-    sort(devlist.begin(), devlist.end());
     sort(prev_devlist.begin(), prev_devlist.end());
 
     for(int i=0; i < devlist.size(); i++) {
@@ -83,7 +82,7 @@ vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
 
 int main(int argc, char **argv) {
 
-    int newdev_delay = 1;
+    int newdev_delay = 100;
 
     while(true) {
 
