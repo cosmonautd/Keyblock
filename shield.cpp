@@ -29,46 +29,55 @@ string shell(const char* command) {
     if(!pipe) throw runtime_error("popen() failed!");
 
     while (!feof(pipe.get())) {
-        if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
+        if (fgets(buffer.data(), 128, pipe.get()) != nullptr) {
             output += buffer.data();
+        }
     }
 
     return output;
 }
 
 vector<string> split(const string &input, char delim) {
+
     stringstream ss(input);
     string item;
     vector<string> tokens;
+
     while(getline(ss, item, delim)) {
         tokens.push_back(item);
     }
+
     return tokens;
 }
 
 vector<int> strvec2int(vector<string> input) {
+
     vector<int> output;
+
     for(int i=0; i < input.size(); i++) {
         output.push_back(stoi(input[i]));
     }
+
     return output;
 }
 
 vector<int> get_devices() {
-    vector<string> devstr = split(shell("xinput --list --id-only"), '\n');
-    vector<int> devlist = strvec2int(devstr);
-    return devlist;
+    return strvec2int(split(shell("xinput --list --id-only"), '\n'));
 }
 
 vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
+
     vector<int> output;
+
     sort(devlist.begin(), devlist.end());
     sort(prev_devlist.begin(), prev_devlist.end());
+
     for(int i=0; i < devlist.size(); i++) {
         if(!binary_search(prev_devlist.begin(), prev_devlist.end(), devlist[i])) {
             output.push_back(devlist[i]);
         }
     }
+
     return output;
 }
 
@@ -83,13 +92,16 @@ int main(int argc, char **argv) {
         bool newdev = false;
 
         while(!newdev) {
+
             devlist = get_devices();
             vector<int> new_devices = get_new_devices(devlist, prev_devlist);
+
             if(new_devices.size() > 0 && prev_devlist.size() != 0) {
                 cout << "New input devices were detected:" << endl;
                 for(int i=0; i < new_devices.size(); i++)
                     cout << "        /dev/input/event" << new_devices[i] << endl;
             }
+            
             this_thread::sleep_for(chrono::milliseconds(newdev_delay));
             prev_devlist.assign(devlist.begin(), devlist.end());
         }
