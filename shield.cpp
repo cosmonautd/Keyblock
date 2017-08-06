@@ -60,11 +60,16 @@ vector<int> get_devices() {
     return devlist;
 }
 
-bool change(vector<int> devlist, vector<int> prev_devlist) {
-    int prev_ndev = prev_devlist.size();
-    int ndev = devlist.size();
-    if(ndev != prev_ndev) return true;
-    else return false;
+vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
+    vector<int> output;
+    sort(devlist.begin(), devlist.end());
+    sort(prev_devlist.begin(), prev_devlist.end());
+    for(int i=0; i < devlist.size(); i++) {
+        if(!binary_search(prev_devlist.begin(), prev_devlist.end(), devlist[i])) {
+            output.push_back(devlist[i]);
+        }
+    }
+    return output;
 }
 
 int main(int argc, char **argv) {
@@ -79,8 +84,11 @@ int main(int argc, char **argv) {
 
         while(!newdev) {
             devlist = get_devices();
-            if(change(devlist, prev_devlist) && prev_devlist.size() != 0) {
-                cout << "A change was detected" << endl;
+            vector<int> new_devices = get_new_devices(devlist, prev_devlist);
+            if(new_devices.size() > 0 && prev_devlist.size() != 0) {
+                cout << "New input devices were detected:" << endl;
+                for(int i=0; i < new_devices.size(); i++)
+                    cout << "        /dev/input/event" << new_devices[i] << endl;
             }
             this_thread::sleep_for(chrono::milliseconds(newdev_delay));
             prev_devlist.assign(devlist.begin(), devlist.end());
