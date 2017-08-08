@@ -10,6 +10,7 @@
 #include <vector>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <linux/input.h>
 
 // https://stackoverflow.com/questions/1485116/capturing-keystrokes-in-gnu-linux-in-c
@@ -20,11 +21,11 @@
 
 using namespace std;
 
-string shell(const char* command) {
+string shell(string command) {
 
     array<char, 128> buffer;
     string output;
-    shared_ptr<FILE> pipe(popen(command, "r"), pclose);
+    shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
 
     if(!pipe) throw runtime_error("popen() failed!");
 
@@ -80,42 +81,76 @@ vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
     return output;
 }
 
+inline bool exists (const string& name) {
+    struct stat buffer;   
+    return (stat (name.c_str(), &buffer) == 0); 
+}
+
+void monitor(int id) {
+
+    string device = "/dev/input/event" + to_string(id);
+    cout << "Monitoring " << device << endl;
+
+    int fd = open(device.c_str(), O_RDONLY);
+    struct input_event ev;
+
+    while (true) {
+
+        auto start = chrono::high_resolution_clock::now();
+        read(fd, &ev, sizeof(struct input_event));
+
+        if(ev.type == 1) {
+
+            // cout << "key " << ev.code << " state " << ev.value << endl;
+
+            auto finish = chrono::high_resolution_clock::now();
+            double interval = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+
+            if(interval < 100000) {
+                cout << "Should disable device " << id << endl;
+                close(fd);
+                break;
+            }
+
+        }
+
+        if(!exists(device)) {
+            close(fd);
+            break;
+        }
+    }
+
+    cout << "Leaving " << device << endl;
+}
+
 int main(int argc, char **argv) {
 
     int newdev_delay = 100;
 
+    vector<int> devlist;
+    vector<int> prev_devlist;
+    vector<thread> threads;
+
     while(true) {
 
-        vector<int> devlist = get_devices();
-        vector<int> prev_devlist;
-        bool newdev = false;
+        devlist = get_devices();
+        vector<int> newdev = get_new_devices(devlist, prev_devlist);
 
-        while(!newdev) {
-
-            devlist = get_devices();
-            vector<int> new_devices = get_new_devices(devlist, prev_devlist);
-
-            if(new_devices.size() > 0 && prev_devlist.size() != 0) {
-                cout << "New input devices were detected:" << endl;
-                for(int i=0; i < new_devices.size(); i++)
-                    cout << "        /dev/input/event" << new_devices[i] << endl;
+        if(newdev.size() > 0 && prev_devlist.size() != 0) {
+            cout << "New input devices were detected:" << endl;
+            for(int i=0; i < newdev.size(); i++) {
+                cout << "        /dev/input/event" << newdev[i] << endl;
+                threads.push_back(thread(monitor, newdev[i]));
             }
-            
-            this_thread::sleep_for(chrono::milliseconds(newdev_delay));
-            prev_devlist.assign(devlist.begin(), devlist.end());
         }
+        
+        this_thread::sleep_for(chrono::milliseconds(newdev_delay));
+        prev_devlist.assign(devlist.begin(), devlist.end());
     }
 
-    // int fd = open("/dev/input/event3", O_RDONLY);
-    // struct input_event ev;
-
-    // while (true) {
-
-    //     read(fd, &ev, sizeof(struct input_event));
-    //     if(ev.type == 1)
-    //         cout << "key " << ev.code << " state " << ev.value << endl;
-
-    // }
+    for(int i=0; i < threads.size(); i++) {
+        threads[i].join();
+    }
 
     return 0;
 }
