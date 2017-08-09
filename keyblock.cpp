@@ -86,8 +86,8 @@ vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
 }
 
 inline bool exists (const string& name) {
-    struct stat buffer;   
-    return (stat (name.c_str(), &buffer) == 0); 
+    struct stat buffer;
+    return (stat (name.c_str(), &buffer) == 0);
 }
 
 void monitor(int id) {
@@ -98,7 +98,7 @@ void monitor(int id) {
 
     int fd = open(device.c_str(), O_RDONLY);
     result = ioctl(fd, EVIOCGNAME(sizeof(name)), name);
-    
+
     cout << "Monitoring " << device << " " << name << endl;
 
     struct input_event ev;
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
                 threads.push_back(thread(monitor, newdev[i]));
             }
         }
-        
+
         this_thread::sleep_for(chrono::milliseconds(newdev_delay));
         prev_devlist.assign(devlist.begin(), devlist.end());
     }

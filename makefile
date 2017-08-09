@@ -1,15 +1,15 @@
-shield:
-	g++ shield.cpp -std=c++11 -lpthread -o shield.app
+keyblock:
+	g++ keyblock.cpp -std=c++11 -lpthread -o keyblock.app
 
 install:
-	cp shield.app shield
-	cp shield /usr/bin/
-	rm shield
-	chmod +x /usr/bin/shield
+	cp keyblock.app keyblock
+	cp keyblock /usr/bin/
+	rm keyblock
+	chmod +x /usr/bin/keyblock
 
 uninstall:
-	rm /usr/bin/shield
+	rm /usr/bin/keyblock
 
 clean:
-	if [ -f shield.app ] ; then rm shield.app ; fi
+	if [ -f keyblock.app ] ; then rm keyblock.app ; fi
 	if ls *.o >/dev/null 2>&1 ; then rm *.o ; fi
