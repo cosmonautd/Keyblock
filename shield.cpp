@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <linux/input.h>
 
 // https://stackoverflow.com/questions/1485116/capturing-keystrokes-in-gnu-linux-in-c
@@ -18,6 +19,9 @@
 // https://stackoverflow.com/questions/2896600/how-to-replace-all-occurrences-of-a-character-in-string
 // https://unix.stackexchange.com/questions/17170/disable-keyboard-mouse-input-on-unix-under-x
 // https://ysonggit.github.io/coding/2014/12/16/split-a-string-using-c.html
+// https://stackoverflow.com/questions/7668872/need-to-intercept-hid-keyboard-events-and-then-block-them
+// https://stackoverflow.com/questions/29104304/remap-a-keyboard-with-ioctl-under-linux
+// https://stackoverflow.com/questions/22209267/capture-hid-keyboard-event
 
 using namespace std;
 
@@ -89,9 +93,14 @@ inline bool exists (const string& name) {
 void monitor(int id) {
 
     string device = "/dev/input/event" + to_string(id);
-    cout << "Monitoring " << device << endl;
+    char name[256] = "Unknown";
+    int result = 0;
 
     int fd = open(device.c_str(), O_RDONLY);
+    result = ioctl(fd, EVIOCGNAME(sizeof(name)), name);
+    
+    cout << "Monitoring " << device << " " << name << endl;
+
     struct input_event ev;
 
     while (true) {
@@ -101,25 +110,24 @@ void monitor(int id) {
 
         if(ev.type == 1) {
 
-            // cout << "key " << ev.code << " state " << ev.value << endl;
-
             auto finish = chrono::high_resolution_clock::now();
             double interval = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
 
             if(interval < 100000) {
-                cout << "Should disable device " << id << endl;
-                close(fd);
-                break;
+                ioctl(fd, EVIOCGRAB, 1);
+                cout << "Disabled device " << id << " tried:" << endl;
+                cout << "        key " << ev.code << " state " << ev.value << endl;
             }
 
         }
 
         if(!exists(device)) {
-            close(fd);
             break;
         }
     }
 
+    ioctl(fd, EVIOCGRAB, 0);
+    close(fd);
     cout << "Leaving " << device << endl;
 }
 

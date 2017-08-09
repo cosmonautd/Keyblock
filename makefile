@@ -1,5 +1,5 @@
 shield:
-	g++ -o shield.app shield.cpp -std=c++11 -lpthread
+	g++ shield.cpp -std=c++11 -lpthread -o shield.app
 
 install:
 	cp shield.app shield
