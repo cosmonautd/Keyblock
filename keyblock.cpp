@@ -25,6 +25,9 @@
 // https://stackoverflow.com/questions/7668872/need-to-intercept-hid-keyboard-events-and-then-block-them
 // https://stackoverflow.com/questions/29104304/remap-a-keyboard-with-ioctl-under-linux
 // https://stackoverflow.com/questions/22209267/capture-hid-keyboard-event
+// https://bharathisubramanian.wordpress.com/2010/03/14/x11-fake-key-event-generation-using-xtest-ext/
+// https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
+// http://www.comptechdoc.org/os/linux/howlinuxworks/linux_hlkeycodes.html
 
 using namespace std;
 
