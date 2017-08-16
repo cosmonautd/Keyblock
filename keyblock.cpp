@@ -13,6 +13,9 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <linux/input.h>
+#include <X11/Xlib.h>
+#include <X11/Intrinsic.h>
+#include <X11/extensions/XTest.h>
 
 // https://stackoverflow.com/questions/1485116/capturing-keystrokes-in-gnu-linux-in-c
 // https://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
@@ -90,7 +93,7 @@ inline bool exists (const string& name) {
     return (stat (name.c_str(), &buffer) == 0);
 }
 
-void monitor(int id) {
+void monitor0(int id) {
 
     string device = "/dev/input/event" + to_string(id);
     char name[256] = "Unknown";
@@ -113,10 +116,70 @@ void monitor(int id) {
             auto finish = chrono::high_resolution_clock::now();
             double interval = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
 
-            if(interval < 100000) {
+            if(interval < 1000) {
                 ioctl(fd, EVIOCGRAB, 1);
                 cout << "Disabled device " << id << " tried:" << endl;
                 cout << "        key " << ev.code << " state " << ev.value << endl;
+            }
+
+        }
+
+        if(!exists(device)) {
+            break;
+        }
+    }
+
+    ioctl(fd, EVIOCGRAB, 0);
+    close(fd);
+    cout << "Leaving " << device << endl;
+}
+
+void monitor1(int id) {
+    
+    string device = "/dev/input/event" + to_string(id);
+    char name[256] = "Unknown";
+    int result = 0;
+
+    int fd = open(device.c_str(), O_RDONLY);
+    result = ioctl(fd, EVIOCGNAME(sizeof(name)), name);
+
+    cout << "Monitoring " << device << " " << name << endl;
+
+    struct input_event ev;
+
+    Display *display;
+    display = XOpenDisplay(NULL);
+    KeyCode keycode = 0; //init value
+
+    ioctl(fd, EVIOCGRAB, 1);
+
+    while (true) {
+
+        auto start = chrono::high_resolution_clock::now();
+        read(fd, &ev, sizeof(struct input_event));
+
+        if(ev.type == 1) {
+
+            auto finish = chrono::high_resolution_clock::now();
+            double interval = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+
+            if(interval < 10000) {
+
+                cout << "Disabled device " << id << " tried:" << endl;
+                cout << "        key " << ev.code << " state " << ev.value << endl;
+
+            } else {
+
+                keycode = ev.code;
+
+                if(ev.value == 1) {
+                    XTestFakeKeyEvent(display, keycode, true, 0);
+                    XFlush(display);
+                } else if(ev.value == 0) {
+                    XTestFakeKeyEvent(display, keycode, false, 0);
+                    XFlush(display);
+                }
+
             }
 
         }
@@ -148,7 +211,7 @@ int main(int argc, char **argv) {
             cout << "New input devices were detected:" << endl;
             for(int i=0; i < newdev.size(); i++) {
                 cout << "        /dev/input/event" << newdev[i] << endl;
-                threads.push_back(thread(monitor, newdev[i]));
+                threads.push_back(thread(monitor0, newdev[i]));
             }
         }
 
