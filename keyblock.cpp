@@ -107,45 +107,17 @@ int lk2x11(int lk_keycode) {
     return lk_keycode + 8;
 }
 
-void monitor0(int id) {
-
-    string device = "/dev/input/event" + to_string(id);
-    char name[256] = "Unknown";
-    int result = 0;
-
-    int fd = open(device.c_str(), O_RDONLY);
-    result = ioctl(fd, EVIOCGNAME(sizeof(name)), name);
-
-    cout << "Monitoring " << device << " " << name << endl;
-
-    struct input_event ev;
-
-    while (true) {
-
-        auto start = chrono::high_resolution_clock::now();
-        read(fd, &ev, sizeof(struct input_event));
-
-        if(ev.type == 1) {
-
-            auto finish = chrono::high_resolution_clock::now();
-            double interval = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
-
-            if(interval < 1000) {
-                ioctl(fd, EVIOCGRAB, 1);
-                cout << "Disabled device " << id << " tried:" << endl;
-                cout << "        key " << ev.code << " state " << ev.value << endl;
+bool analysis(vector<double> keystrokes) {
+    if(keystrokes.size() < 2) return true;
+    else {
+        for(int i=0; i < keystrokes.size() - 1; i++) {
+            double interval = keystrokes[i] - keystrokes[i+1];
+            if(interval < 7000000) {
+                return true;
             }
-
-        }
-
-        if(!exists(device)) {
-            break;
         }
     }
-
-    ioctl(fd, EVIOCGRAB, 0);
-    close(fd);
-    cout << "Leaving " << device << endl;
+    return false;
 }
 
 void monitor1(int id) {
@@ -167,36 +139,50 @@ void monitor1(int id) {
 
     ioctl(fd, EVIOCGRAB, 1);
 
+    vector<double> keystrokes;
+    bool disable = false;
+
     while (true) {
 
-        auto start = chrono::high_resolution_clock::now();
         read(fd, &ev, sizeof(struct input_event));
 
         if(ev.type == 1) {
 
-            auto finish = chrono::high_resolution_clock::now();
-            double interval = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
-
-            if(interval < 1000) {
-
-                cout << "Disabled device " << id << " tried:" << endl;
-                cout << "        key " << ev.code << " state " << ev.value << endl;
-
-            } else {
-
-                keycode = ev.code;
-
-                if(ev.value == 1) {
-                    XTestFakeKeyEvent(display, lk2x11(keycode), PRESS, 0);
-                    XFlush(display);
-                } else if(ev.value == 0) {
-                    XTestFakeKeyEvent(display, lk2x11(keycode), RELEASE, 0);
-                    XFlush(display);
-                }
-
+            if(ev.value == 1) {
+                double t = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+                keystrokes.insert(keystrokes.begin(), t);
             }
 
+            if(keystrokes.size() > 1) {
+
+                disable = disable ? disable : analysis(keystrokes);
+                
+                if(disable) {
+
+                    for(int i=8; i < 256; i++) {
+                        XTestFakeKeyEvent(display, i, RELEASE, 0);
+                        XFlush(display);
+                    }
+                    
+                    cout << "Disabled device " << id << " tried:" << endl;
+                    cout << "        key " << ev.code << " state " << ev.value << endl;
+        
+                } else {
+        
+                    keycode = ev.code;
+                    
+                    if(ev.value == 1) {
+                        XTestFakeKeyEvent(display, lk2x11(keycode), PRESS, 0);
+                        XFlush(display);
+                    } else if(ev.value == 0) {
+                        XTestFakeKeyEvent(display, lk2x11(keycode), RELEASE, 0);
+                        XFlush(display);
+                    }
+                }
+            }
         }
+
+        while(keystrokes.size() > 10) keystrokes.pop_back();
 
         if(!exists(device)) {
             break;
