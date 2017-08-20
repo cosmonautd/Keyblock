@@ -8,6 +8,7 @@
 #include <thread>
 #include <sstream>
 #include <vector>
+#include <glob.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -28,8 +29,12 @@
 // https://bharathisubramanian.wordpress.com/2010/03/14/x11-fake-key-event-generation-using-xtest-ext/
 // https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
 // http://www.comptechdoc.org/os/linux/howlinuxworks/linux_hlkeycodes.html
+// https://stackoverflow.com/questions/612097/how-can-i-get-the-list-of-files-in-a-directory-using-c-or-c
 
 using namespace std;
+
+#define PRESS   true
+#define RELEASE false
 
 string shell(string command) {
 
@@ -48,32 +53,34 @@ string shell(string command) {
     return output;
 }
 
-vector<string> split(const string &input, char delim) {
-
-    stringstream ss(input);
-    string item;
-    vector<string> tokens;
-
-    while(getline(ss, item, delim)) {
-        tokens.push_back(item);
+vector<string> ls(const string& pattern){
+    glob_t glob_result;
+    glob(pattern.c_str(),GLOB_TILDE,NULL,&glob_result);
+    vector<string> files;
+    for(unsigned int i=0;i<glob_result.gl_pathc;++i){
+        files.push_back(string(glob_result.gl_pathv[i]));
     }
-
-    return tokens;
+    globfree(&glob_result);
+    return files;
 }
 
-vector<int> strvec2int(vector<string> input) {
+bool startswith(string prefix, string str) {
 
-    vector<int> output;
-
-    for(int i=0; i < input.size(); i++) {
-        output.push_back(stoi(input[i]));
-    }
-
-    return output;
+    size_t lenpre = strlen(prefix.c_str()),
+           lenstr = strlen(str.c_str());
+    return lenstr < lenpre ? false : strncmp(prefix.c_str(), str.c_str(), lenpre) == 0;
 }
 
 vector<int> get_devices() {
-    return strvec2int(split(shell("xinput --list --id-only"), '\n'));
+    vector<int> output;
+    vector<string> inputdevs = ls("/dev/input/*");
+    for(int i=0; i < inputdevs.size(); i++) {
+        if(startswith("/dev/input/event", inputdevs[i])) {
+            inputdevs[i].erase(0, 16);
+            output.push_back(stoi(inputdevs[i]));
+        }
+    }
+    return output;
 }
 
 vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
@@ -94,6 +101,10 @@ vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
 inline bool exists (const string& name) {
     struct stat buffer;
     return (stat (name.c_str(), &buffer) == 0);
+}
+
+int lk2x11(int lk_keycode) {
+    return lk_keycode + 8;
 }
 
 void monitor0(int id) {
@@ -152,7 +163,7 @@ void monitor1(int id) {
 
     Display *display;
     display = XOpenDisplay(NULL);
-    KeyCode keycode = 0; //init value
+    KeyCode keycode = 0;
 
     ioctl(fd, EVIOCGRAB, 1);
 
@@ -166,7 +177,7 @@ void monitor1(int id) {
             auto finish = chrono::high_resolution_clock::now();
             double interval = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
 
-            if(interval < 10000) {
+            if(interval < 1000) {
 
                 cout << "Disabled device " << id << " tried:" << endl;
                 cout << "        key " << ev.code << " state " << ev.value << endl;
@@ -176,10 +187,10 @@ void monitor1(int id) {
                 keycode = ev.code;
 
                 if(ev.value == 1) {
-                    XTestFakeKeyEvent(display, keycode, true, 0);
+                    XTestFakeKeyEvent(display, lk2x11(keycode), PRESS, 0);
                     XFlush(display);
                 } else if(ev.value == 0) {
-                    XTestFakeKeyEvent(display, keycode, false, 0);
+                    XTestFakeKeyEvent(display, lk2x11(keycode), RELEASE, 0);
                     XFlush(display);
                 }
 
@@ -214,7 +225,7 @@ int main(int argc, char **argv) {
             cout << "New input devices were detected:" << endl;
             for(int i=0; i < newdev.size(); i++) {
                 cout << "        /dev/input/event" << newdev[i] << endl;
-                threads.push_back(thread(monitor0, newdev[i]));
+                threads.push_back(thread(monitor1, newdev[i]));
             }
         }
 
