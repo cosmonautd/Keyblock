@@ -18,24 +18,13 @@
 #include <X11/Intrinsic.h>
 #include <X11/extensions/XTest.h>
 
-// https://stackoverflow.com/questions/1485116/capturing-keystrokes-in-gnu-linux-in-c
-// https://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
-// https://stackoverflow.com/questions/2896600/how-to-replace-all-occurrences-of-a-character-in-string
-// https://unix.stackexchange.com/questions/17170/disable-keyboard-mouse-input-on-unix-under-x
-// https://ysonggit.github.io/coding/2014/12/16/split-a-string-using-c.html
-// https://stackoverflow.com/questions/7668872/need-to-intercept-hid-keyboard-events-and-then-block-them
-// https://stackoverflow.com/questions/29104304/remap-a-keyboard-with-ioctl-under-linux
-// https://stackoverflow.com/questions/22209267/capture-hid-keyboard-event
-// https://bharathisubramanian.wordpress.com/2010/03/14/x11-fake-key-event-generation-using-xtest-ext/
-// https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
-// http://www.comptechdoc.org/os/linux/howlinuxworks/linux_hlkeycodes.html
-// https://stackoverflow.com/questions/612097/how-can-i-get-the-list-of-files-in-a-directory-using-c-or-c
-
 using namespace std;
 
 #define PRESS   true
 #define RELEASE false
 
+/*  Returns a string containing the stdout of a shell command.
+*/
 string shell(string command) {
 
     array<char, 128> buffer;
@@ -53,6 +42,9 @@ string shell(string command) {
     return output;
 }
 
+/*  Returns the contents of a directory matching a pattern
+    Example: ls("/*") returns files and directories in /
+*/
 vector<string> ls(const string& pattern){
     glob_t glob_result;
     glob(pattern.c_str(),GLOB_TILDE,NULL,&glob_result);
@@ -64,6 +56,8 @@ vector<string> ls(const string& pattern){
     return files;
 }
 
+/*  Returns true if str starts with a given prefix, false otherwise.
+*/
 bool startswith(string prefix, string str) {
 
     size_t lenpre = strlen(prefix.c_str()),
@@ -71,6 +65,8 @@ bool startswith(string prefix, string str) {
     return lenstr < lenpre ? false : strncmp(prefix.c_str(), str.c_str(), lenpre) == 0;
 }
 
+/*  Returns input device ids read from /dev/input/
+*/
 vector<int> get_devices() {
     vector<int> output;
     vector<string> inputdevs = ls("/dev/input/*");
@@ -82,6 +78,9 @@ vector<int> get_devices() {
     }
     return output;
 }
+
+/*  Returns input device ids from devlist that are not found in prev_devlist.
+*/
 
 vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
 
@@ -98,15 +97,22 @@ vector<int> get_new_devices(vector<int> devlist, vector<int> prev_devlist) {
     return output;
 }
 
-inline bool exists (const string& name) {
+/*  Returns true if file exists, false otherwise.
+*/
+inline bool exists (const string& filename) {
     struct stat buffer;
-    return (stat (name.c_str(), &buffer) == 0);
+    return (stat (filename.c_str(), &buffer) == 0);
 }
 
+/*  Converts a linux kernel keycode to X11 keycode.
+*/
 int lk2x11(int lk_keycode) {
     return lk_keycode + 8;
 }
 
+/*  Performs keystroke timestamp analysis.
+    Returns true if unusual activity is detected, false otherwise.
+*/
 bool analysis(vector<double> keystrokes) {
     if(keystrokes.size() < 2) return true;
     else {
@@ -120,7 +126,12 @@ bool analysis(vector<double> keystrokes) {
     return false;
 }
 
-void monitor1(int id) {
+/*  Monitor thread.
+    Captures all events from device with given id, performs analysis,
+    redirects events to X if no unusual activity is detected, otherwise,
+    block device until disconnect. Thread ends if device is removed.
+*/
+void monitor(int id) {
     
     string device = "/dev/input/event" + to_string(id);
     char name[256] = "Unknown";
@@ -128,6 +139,7 @@ void monitor1(int id) {
 
     int fd = open(device.c_str(), O_RDONLY);
     result = ioctl(fd, EVIOCGNAME(sizeof(name)), name);
+    ioctl(fd, EVIOCGRAB, 1);
 
     cout << "Monitoring " << device << " " << name << endl;
 
@@ -136,8 +148,6 @@ void monitor1(int id) {
     Display *display;
     display = XOpenDisplay(NULL);
     KeyCode keycode = 0;
-
-    ioctl(fd, EVIOCGRAB, 1);
 
     vector<double> keystrokes;
     bool disable = false;
@@ -211,7 +221,7 @@ int main(int argc, char **argv) {
             cout << "New input devices were detected:" << endl;
             for(int i=0; i < newdev.size(); i++) {
                 cout << "        /dev/input/event" << newdev[i] << endl;
-                threads.push_back(thread(monitor1, newdev[i]));
+                threads.push_back(thread(monitor, newdev[i]));
             }
         }
 
