@@ -18,6 +18,8 @@
 #include <X11/Intrinsic.h>
 #include <X11/extensions/XTest.h>
 
+#include <gsl/gsl_statistics.h>
+
 using namespace std;
 
 #define PRESS   true
@@ -126,6 +128,19 @@ bool maximum_delay_analysis(vector<double> keystrokes) {
     return false;
 }
 
+bool gaussian_analysis(vector<double> keystrokes) {
+    double delays[keystrokes.size() - 1];
+    if(keystrokes.size() > 1) {
+        for(int i=0; i < keystrokes.size() - 1; i++) {
+            delays[i] = keystrokes[i] - keystrokes[i+1];
+        }
+    }
+    double mean = gsl_stats_mean(delays, 1, keystrokes.size()-1);
+    double std = gsl_stats_sd_m(delays, 1, keystrokes.size()-1, mean);
+    if(mean - 2000000 < 500000 || std < 100000 ) return true;
+    return false;
+}
+
 /*  Monitor thread.
     Captures all events from device with given id, performs analysis,
     redirects events to X if no unusual activity is detected, otherwise,
@@ -165,7 +180,7 @@ void monitor(int id) {
 
             if(keystrokes.size() > 1) {
 
-                disable = disable ? disable : maximum_delay_analysis(keystrokes);
+                disable = disable ? disable : gaussian_analysis(keystrokes);
                 
                 if(disable) {
 

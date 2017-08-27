@@ -1,5 +1,5 @@
 keyblock:
-	g++ keyblock.cpp -std=c++11 -lpthread -lX11 -lXtst -o keyblock.app
+	g++ keyblock.cpp -std=c++11 -lpthread -lX11 -lXtst -lgsl -lgslcblas -o keyblock.app
 
 install:
 	cp keyblock.app keyblock
