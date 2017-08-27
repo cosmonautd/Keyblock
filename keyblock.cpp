@@ -110,15 +110,15 @@ int lk2x11(int lk_keycode) {
     return lk_keycode + 8;
 }
 
-/*  Performs keystroke timestamp analysis.
+/*  Performs maximum delay analysis on keystroke timestamps.
     Returns true if unusual activity is detected, false otherwise.
 */
-bool analysis(vector<double> keystrokes) {
-    if(keystrokes.size() < 2) return true;
-    else {
+bool maximum_delay_analysis(vector<double> keystrokes) {
+    double threshold = 7000000;
+    if(keystrokes.size() > 1) {
         for(int i=0; i < keystrokes.size() - 1; i++) {
-            double interval = keystrokes[i] - keystrokes[i+1];
-            if(interval < 7000000) {
+            double delay = keystrokes[i] - keystrokes[i+1];
+            if(delay < threshold) {
                 return true;
             }
         }
@@ -165,7 +165,7 @@ void monitor(int id) {
 
             if(keystrokes.size() > 1) {
 
-                disable = disable ? disable : analysis(keystrokes);
+                disable = disable ? disable : maximum_delay_analysis(keystrokes);
                 
                 if(disable) {
 
