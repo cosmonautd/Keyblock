@@ -128,7 +128,7 @@ bool maximum_delay_analysis(vector<double> keystrokes) {
     return false;
 }
 
-bool gaussian_analysis(vector<double> keystrokes) {
+bool attack_similarity_analysis(vector<double> keystrokes) {
     double delays[keystrokes.size() - 1];
     if(keystrokes.size() > 1) {
         for(int i=0; i < keystrokes.size() - 1; i++) {
@@ -180,7 +180,7 @@ void monitor(int id) {
 
             if(keystrokes.size() > 1) {
 
-                disable = disable ? disable : gaussian_analysis(keystrokes);
+                disable = disable ? disable : attack_similarity_analysis(keystrokes);
                 
                 if(disable) {
 
