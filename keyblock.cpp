@@ -113,7 +113,7 @@ int lk2x11(int lk_keycode) {
 }
 
 /*  Performs maximum delay analysis on keystroke timestamps.
-    Returns true if unusual activity is detected, false otherwise.
+    Returns true if any measured keystroke latency is less than a threshold.
 */
 bool maximum_delay_analysis(vector<double> keystrokes) {
     double threshold = 7000000;
@@ -128,6 +128,10 @@ bool maximum_delay_analysis(vector<double> keystrokes) {
     return false;
 }
 
+/*  Performs an attack similarity analysis on keystroke timestamps.
+    Returns true if mean or standard deviation of measured keystroke
+    latencies is close to empirical mean or std of keystroke injection latencies.
+*/
 bool attack_similarity_analysis(vector<double> keystrokes) {
     double delays[keystrokes.size() - 1];
     if(keystrokes.size() > 1) {
@@ -139,6 +143,23 @@ bool attack_similarity_analysis(vector<double> keystrokes) {
     double std = gsl_stats_sd_m(delays, 1, keystrokes.size()-1, mean);
     if(mean - 2000000 < 500000 || std < 100000 ) return true;
     return false;
+}
+
+/*  Performs a human similarity analysis on keystroke timestamps.
+    Returns true if latency mean or std is far below measured human latencies.
+    The fixed values are computed from empirical data.
+*/
+bool human_similarity_analysis(vector<double> keystrokes) {
+    double delays[keystrokes.size() - 1];
+    if(keystrokes.size() > 1) {
+        for(int i=0; i < keystrokes.size() - 1; i++) {
+            delays[i] = keystrokes[i] - keystrokes[i+1];
+        }
+    }
+    double mean = gsl_stats_mean(delays, 1, keystrokes.size()-1);
+    double std = gsl_stats_sd_m(delays, 1, keystrokes.size()-1, mean);
+    if(mean < 31.59*1000000 - 2*9.59*1000000 || std < 1000000) return true;
+    else return false;
 }
 
 /*  Monitor thread.
