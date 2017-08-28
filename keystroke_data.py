@@ -11,7 +11,7 @@ with open("calot15b.json", "r") as f:
     mu = np.mean(x)
     sigma = np.std(x)
 
-    num_bins = 15
+    num_bins = 12
 
     fig, ax = plt.subplots()
 
@@ -19,7 +19,7 @@ with open("calot15b.json", "r") as f:
     n, bins, patches = ax.hist(x, num_bins, normed=1)
 
     # add a 'best fit' line
-    y = mlab.normpdf(bins, mu, sigma)
+    y = mlab.normpdf(bins, mu, sigma).cumsum()
     ax.plot(bins, y, '--')
     ax.set_xlabel('Time (ms)')
     ax.set_ylabel('Probability density')
