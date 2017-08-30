@@ -200,8 +200,8 @@ void monitor(int id) {
             }
 
             if(keystrokes.size() > 1) {
-
-                disable = disable ? disable : attack_similarity_analysis(keystrokes);
+                
+                disable = disable ? disable : human_similarity_analysis(keystrokes);
                 
                 if(disable) {
 
