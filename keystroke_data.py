@@ -16,14 +16,15 @@ with open("calot15b.json", "r") as f:
     fig, ax = plt.subplots()
 
     # the histogram of the data
-    n, bins, patches = ax.hist(x, num_bins, normed=1)
+    weights = np.ones_like(x)/float(len(x))
+    n, bins, patches = ax.hist(x, num_bins, weights=weights, normed=0)
 
     # add a 'best fit' line
-    y = mlab.normpdf(bins, mu, sigma).cumsum()
+    y = 4.1*mlab.normpdf(bins, mu, sigma).cumsum()
     ax.plot(bins, y, '--')
     ax.set_xlabel('Time (ms)')
     ax.set_ylabel('Probability density')
-    ax.set_title(r'Keystroke latency: $\mu=%.2f$, $\sigma=%.2f$' % (mu, sigma))
+    ax.set_title(r'Keystroke latency: $\mu=%.2f$ms, $\sigma=%.2f$ms' % (mu, sigma))
 
     # Tweak spacing to prevent clipping of ylabel
     fig.tight_layout()
