@@ -112,19 +112,19 @@ int lk2x11(int lk_keycode) {
     return lk_keycode + 8;
 }
 
-/*  Performs maximum delay analysis on keystroke timestamps.
-    Returns true if any measured keystroke latency is less than a threshold.
+/*  Performs minimum allowed keystroke latency on keystroke timestamps.
+    Returns true if keystroke latency average is below a threshold.
 */
-bool maximum_delay_analysis(vector<double> keystrokes) {
+bool min_allowed_keystroke_latency(vector<double> keystrokes) {
     double threshold = 7000000;
+    double delays[keystrokes.size() - 1];
     if(keystrokes.size() > 1) {
         for(int i=0; i < keystrokes.size() - 1; i++) {
-            double delay = keystrokes[i] - keystrokes[i+1];
-            if(delay < threshold) {
-                return true;
-            }
+            delays[i] = keystrokes[i] - keystrokes[i+1];
         }
     }
+    double mean = gsl_stats_mean(delays, 1, keystrokes.size()-1);
+    if(mean < threshold) return true;
     return false;
 }
 
