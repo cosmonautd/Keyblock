@@ -186,6 +186,7 @@ void monitor(int id) {
     KeyCode keycode = 0;
 
     vector<double> keystroke_press;
+    vector<double> keystroke_release;
     bool disable = false;
 
     while (true) {
@@ -194,10 +195,11 @@ void monitor(int id) {
 
         if(ev.type == 1) {
 
-            if(ev.value == 1) {
-                double t = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+            double t = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+
+            if(ev.value == 1)
                 keystroke_press.insert(keystroke_press.begin(), t);
-            }
+            else keystroke_release.insert(keystroke_release.begin(), t);
 
             if(keystroke_press.size() > 1) {
                 
@@ -229,6 +231,7 @@ void monitor(int id) {
         }
 
         while(keystroke_press.size() > 10) keystroke_press.pop_back();
+        while(keystroke_release.size() > 10) keystroke_release.pop_back();
 
         if(!exists(device)) {
             break;
