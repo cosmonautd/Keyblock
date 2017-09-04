@@ -150,6 +150,8 @@ bool attack_similarity_analysis(vector<double> keystroke_press) {
     The fixed values are computed from empirical data.
 */
 bool max_allowed_human_deviation(vector<double> keystroke_press) {
+    double tau_d = 31.64*1000000 - 2*9.63*1000000;
+    double tau_s = 0.1*9.63*1000000;
     double delays[keystroke_press.size() - 1];
     if(keystroke_press.size() > 1) {
         for(int i=0; i < keystroke_press.size() - 1; i++) {
@@ -158,7 +160,7 @@ bool max_allowed_human_deviation(vector<double> keystroke_press) {
     }
     double mean = gsl_stats_mean(delays, 1, keystroke_press.size()-1);
     double std = gsl_stats_sd_m(delays, 1, keystroke_press.size()-1, mean);
-    if(mean < 31.64*1000000 - 2*9.63*1000000 || std < 1000000) return true;
+    if(mean < tau_d || std < tau_s) return true;
     else return false;
 }
 
