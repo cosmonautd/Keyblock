@@ -145,11 +145,11 @@ bool attack_similarity_analysis(vector<double> keystroke_press) {
     return false;
 }
 
-/*  Performs a human similarity analysis on keystroke timestamps.
+/*  Performs maximum allowed human deviation analysis on keystroke timestamps.
     Returns true if latency mean or std is far below measured human latencies.
     The fixed values are computed from empirical data.
 */
-bool human_similarity_analysis(vector<double> keystroke_press) {
+bool max_allowed_human_deviation(vector<double> keystroke_press) {
     double delays[keystroke_press.size() - 1];
     if(keystroke_press.size() > 1) {
         for(int i=0; i < keystroke_press.size() - 1; i++) {
@@ -203,7 +203,7 @@ void monitor(int id) {
 
             if(keystroke_press.size() > 1) {
                 
-                disable = disable ? disable : human_similarity_analysis(keystroke_press);
+                disable = disable ? disable : max_allowed_human_deviation(keystroke_press);
                 
                 if(disable) {
 
