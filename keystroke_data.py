@@ -1,30 +1,71 @@
 import json
 import numpy as np
+import matplotlib
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 
-with open("calot15b.json", "r") as f:
+font = {'family' : 'DejaVu Sans',
+        'weight' : 'normal',
+        'size'   : 12}
 
-    keystroke_data = json.loads(f.read())
+matplotlib.rc('font', **font)
 
-    x = np.array([v for v in keystroke_data["dd"] if v < 50])
-    mu = np.mean(x)
-    sigma = np.std(x)
+def latency_plot():
 
-    num_bins = 12
+    with open("calot15b.json", "r") as f:
 
-    fig, ax = plt.subplots()
+        keystroke_data = json.loads(f.read())
 
-    # the histogram of the data
-    n, bins, patches = ax.hist(x, num_bins, normed=1)
+        x = np.array([v for v in keystroke_data["dd"] if v < 50.1])
+        mu = np.mean(x)
+        sigma = np.std(x)
 
-    # add a 'best fit' line
-    y = mlab.normpdf(bins, mu, sigma).cumsum()
-    ax.plot(bins, y, '--')
-    ax.set_xlabel('Time (ms)')
-    ax.set_ylabel('Probability density')
-    ax.set_title(r'Keystroke latency: $\mu=%.2f$, $\sigma=%.2f$' % (mu, sigma))
+        num_bins = 12
 
-    # Tweak spacing to prevent clipping of ylabel
-    fig.tight_layout()
-    plt.show()
+        fig, ax = plt.subplots()
+
+        # the histogram of the data
+        weights = np.ones_like(x)/float(len(x))
+        n, bins, patches = ax.hist(x, num_bins, weights=weights, normed=0, color='black', alpha=0.7)
+        n, bins, patches = ax.hist(x, num_bins, normed=1, histtype='step', cumulative=True, \
+                                    label='Empirical', linestyle='dashed', color='black')
+
+        ax.set_xlim([1, 50])
+        ax.set_xlabel('Time (ms)')
+        ax.set_ylabel('Cumulative density')
+        ax.set_title(r'Keystroke latency: $\mu=%.2f$ms, $\sigma=%.2f$ms' % (mu, sigma))
+
+        # Tweak spacing to prevent clipping of ylabel
+        fig.tight_layout()
+        plt.show()
+
+def holdtime_plot():
+
+    with open("calot15b.json", "r") as f:
+
+        keystroke_data = json.loads(f.read())
+
+        x = np.array([v for v in keystroke_data["du"] if v < 50.1])
+        mu = np.mean(x)
+        sigma = np.std(x)
+
+        num_bins = 12
+
+        fig, ax = plt.subplots()
+
+        # the histogram of the data
+        weights = np.ones_like(x)/float(len(x))
+        n, bins, patches = ax.hist(x, num_bins, weights=weights, normed=0, color='black', alpha=0.7)
+        n, bins, patches = ax.hist(x, num_bins, normed=1, histtype='step', cumulative=True, \
+                                    label='Empirical', linestyle='dashed', color='black')
+
+        ax.set_xlim([1, 50])
+        ax.set_xlabel('Time (ms)')
+        ax.set_ylabel('Cumulative density')
+        ax.set_title(r'Keystroke hold time: $\mu=%.2f$ms, $\sigma=%.2f$ms' % (mu, sigma))
+
+        # Tweak spacing to prevent clipping of ylabel
+        fig.tight_layout()
+        plt.show()
+
+holdtime_plot()

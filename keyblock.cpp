@@ -112,19 +112,19 @@ int lk2x11(int lk_keycode) {
     return lk_keycode + 8;
 }
 
-/*  Performs maximum delay analysis on keystroke timestamps.
-    Returns true if any measured keystroke latency is less than a threshold.
+/*  Performs minimum allowed keystroke latency on keystroke timestamps.
+    Returns true if keystroke latency average is below a threshold.
 */
-bool maximum_delay_analysis(vector<double> keystrokes) {
-    double threshold = 7000000;
-    if(keystrokes.size() > 1) {
-        for(int i=0; i < keystrokes.size() - 1; i++) {
-            double delay = keystrokes[i] - keystrokes[i+1];
-            if(delay < threshold) {
-                return true;
-            }
+bool min_allowed_keystroke_latency(vector<double> keystroke_press) {
+    double threshold = 5000000;
+    double delays[keystroke_press.size() - 1];
+    if(keystroke_press.size() > 1) {
+        for(int i=0; i < keystroke_press.size() - 1; i++) {
+            delays[i] = keystroke_press[i] - keystroke_press[i+1];
         }
     }
+    double mean = gsl_stats_mean(delays, 1, keystroke_press.size()-1);
+    if(mean < threshold) return true;
     return false;
 }
 
@@ -132,33 +132,35 @@ bool maximum_delay_analysis(vector<double> keystrokes) {
     Returns true if mean or standard deviation of measured keystroke
     latencies is close to empirical mean or std of keystroke injection latencies.
 */
-bool attack_similarity_analysis(vector<double> keystrokes) {
-    double delays[keystrokes.size() - 1];
-    if(keystrokes.size() > 1) {
-        for(int i=0; i < keystrokes.size() - 1; i++) {
-            delays[i] = keystrokes[i] - keystrokes[i+1];
+bool attack_similarity_analysis(vector<double> keystroke_press) {
+    double delays[keystroke_press.size() - 1];
+    if(keystroke_press.size() > 1) {
+        for(int i=0; i < keystroke_press.size() - 1; i++) {
+            delays[i] = keystroke_press[i] - keystroke_press[i+1];
         }
     }
-    double mean = gsl_stats_mean(delays, 1, keystrokes.size()-1);
-    double std = gsl_stats_sd_m(delays, 1, keystrokes.size()-1, mean);
+    double mean = gsl_stats_mean(delays, 1, keystroke_press.size()-1);
+    double std = gsl_stats_sd_m(delays, 1, keystroke_press.size()-1, mean);
     if(mean - 2000000 < 500000 || std < 100000 ) return true;
     return false;
 }
 
-/*  Performs a human similarity analysis on keystroke timestamps.
+/*  Performs maximum allowed human deviation analysis on keystroke timestamps.
     Returns true if latency mean or std is far below measured human latencies.
     The fixed values are computed from empirical data.
 */
-bool human_similarity_analysis(vector<double> keystrokes) {
-    double delays[keystrokes.size() - 1];
-    if(keystrokes.size() > 1) {
-        for(int i=0; i < keystrokes.size() - 1; i++) {
-            delays[i] = keystrokes[i] - keystrokes[i+1];
+bool max_allowed_human_deviation(vector<double> keystroke_press) {
+    double tau_d = 31.64*1000000 - 2*9.63*1000000;
+    double tau_s = 0.1*9.63*1000000;
+    double delays[keystroke_press.size() - 1];
+    if(keystroke_press.size() > 1) {
+        for(int i=0; i < keystroke_press.size() - 1; i++) {
+            delays[i] = keystroke_press[i] - keystroke_press[i+1];
         }
     }
-    double mean = gsl_stats_mean(delays, 1, keystrokes.size()-1);
-    double std = gsl_stats_sd_m(delays, 1, keystrokes.size()-1, mean);
-    if(mean < 31.59*1000000 - 2*9.59*1000000 || std < 1000000) return true;
+    double mean = gsl_stats_mean(delays, 1, keystroke_press.size()-1);
+    double std = gsl_stats_sd_m(delays, 1, keystroke_press.size()-1, mean);
+    if(mean < tau_d || std < tau_s) return true;
     else return false;
 }
 
@@ -185,7 +187,8 @@ void monitor(int id) {
     display = XOpenDisplay(NULL);
     KeyCode keycode = 0;
 
-    vector<double> keystrokes;
+    vector<double> keystroke_press;
+    vector<double> keystroke_release;
     bool disable = false;
 
     while (true) {
@@ -194,14 +197,15 @@ void monitor(int id) {
 
         if(ev.type == 1) {
 
-            if(ev.value == 1) {
-                double t = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
-                keystrokes.insert(keystrokes.begin(), t);
-            }
+            double t = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
 
-            if(keystrokes.size() > 1) {
+            if(ev.value == 1)
+                keystroke_press.insert(keystroke_press.begin(), t);
+            else keystroke_release.insert(keystroke_release.begin(), t);
 
-                disable = disable ? disable : attack_similarity_analysis(keystrokes);
+            if(keystroke_press.size() > 1) {
+                
+                disable = disable ? disable : max_allowed_human_deviation(keystroke_press);
                 
                 if(disable) {
 
@@ -228,7 +232,8 @@ void monitor(int id) {
             }
         }
 
-        while(keystrokes.size() > 10) keystrokes.pop_back();
+        while(keystroke_press.size() > 10) keystroke_press.pop_back();
+        while(keystroke_release.size() > 10) keystroke_release.pop_back();
 
         if(!exists(device)) {
             break;
