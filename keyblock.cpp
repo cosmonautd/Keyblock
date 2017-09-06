@@ -242,7 +242,7 @@ void monitor(int id) {
 
 int main(int argc, char **argv) {
 
-    int newdev_delay = 100;
+    int newdev_delay = 10;
 
     vector<int> devlist;
     vector<int> prev_devlist;
