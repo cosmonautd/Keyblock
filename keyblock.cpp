@@ -150,7 +150,7 @@ bool attack_similarity_analysis(vector<double> keystroke_press) {
     The fixed values are computed from empirical data.
 */
 bool max_allowed_human_deviation(vector<double> keystroke_press) {
-    double tau_d = 31.64*1000000 - 2*9.63*1000000;
+    double tau_d = 31.64*1000000 - 3*9.63*1000000;
     double tau_s = 0.1*9.63*1000000;
     double delays[keystroke_press.size() - 1];
     if(keystroke_press.size() > 1) {
