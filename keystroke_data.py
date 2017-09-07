@@ -33,17 +33,19 @@ def latency_plot():
         # the histogram of the data
         weights = np.ones_like(x2)/float(len(x2))
         n, bins, patches = ax.hist(x2, num_bins, weights=weights, normed=0, color='black',\
-                                    label="Attack relative frequency")
+                                    label="Attack latencies")
         n, bins, patches = ax.hist(x2, num_bins, normed=1, histtype='step', cumulative=-1, \
-                                    label='Attack probability', linestyle='dotted', color='black')
+                                    label='Attack probability', linestyle='dotted', color='black',
+                                    linewidth=2)
 
         weights = np.ones_like(x)/float(len(x))
         n, bins, patches = ax.hist(x, num_bins, weights=weights, normed=0, color='black', alpha=0.5,\
-                                    label="Human relative frequency")
+                                    label="Human latencies")
         n, bins, patches = ax.hist(x, num_bins, normed=1, histtype='step', cumulative=True, \
-                                    label='Human probability', linestyle='dashed', color='black', alpha=0.5)
+                                    label='Human probability', linestyle='dashed', color='black', alpha=0.5,
+                                    linewidth=2)
 
-        ax.set_xlim([100, 10000])
+        ax.set_xlim([250, 9950])
         ax.set_xlabel(r'Keystroke Latency ($\mu s$)')
         ax.set_ylabel('Estimated Probabilities')
         #ax.set_title(r'Keystroke latency: $\mu_h=%.2f$us, $\sigma_h=%.2f$us, $\mu_a=%.2f$us, $\sigma_a=%.2f$us' % (mu, sigma, mu2, sigma2))
