@@ -125,6 +125,7 @@ Creative Commons may be contacted at creativecommons.org.
 #include <X11/extensions/XTest.h>
 #include <gsl/gsl_statistics.h>
 
+/* On debian-based system, depends on libxt-dev libxtst-dev libgsl0-dev */
 /* Make with "g++ keyblock.cpp -std=c++11 -lpthread -lX11 -lXtst -lgsl -lgslcblas -o keyblock.app" */
 
 using namespace std;
